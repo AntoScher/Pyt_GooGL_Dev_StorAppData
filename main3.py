@@ -3,12 +3,12 @@ from flask import request, url_for, session
 import booksdb
 import storage
 import secrets
-import oauth
-import translate
-import profiledb
 import json
 import os
 from urllib.parse import urlparse
+import oauth
+import translate
+import profiledb
 
 app = Flask(__name__)
 app.config.update(
@@ -26,6 +26,13 @@ app.config.update(
 )
 app.debug = True
 app.testing = False
+
+# build a mapping of language codes to display names
+
+display_languages = {}
+for l in translate.get_languages():
+    display_languages[l.language_code] = l.display_name
+
 
 def upload_image_file(img):
     """
@@ -45,6 +52,7 @@ def upload_image_file(img):
         'Uploaded file %s as %s.', img.filename, public_url)
 
     return public_url
+
 
 def logout_session():
     """
@@ -151,6 +159,7 @@ def logout():
     logout_session()
     return redirect(url_for('.list'))
 
+
 @app.route('/')
 def list():
     books = booksdb.list()
@@ -158,11 +167,39 @@ def list():
 
 @app.route('/books/<book_id>')
 def view(book_id):
+    """
+    View the details of a specified book.
+    """
+    # retrieve a specific book
     book = booksdb.read(book_id)
-    return render_template('view.html', book=book)
+    current_app.logger.info(f"book={book}")
+
+    # defaults if logged out
+    description_language = None
+    translation_language = None
+    translated_text = ''
+    if book['description'] and "credentials" in session:
+        preferred_language = session.get('preferred_language', 'en')
+
+        # translate description
+        translation = translate.translate_text(
+            text=book['description'],
+            target_language_code=preferred_language,
+        )
+        description_language = display_languages[translation.detected_language_code]
+        translation_language = display_languages[preferred_language]
+        translated_text = translation.translated_text
+
+    # render book details
+    return render_template('view.html', book=book,
+        translated_text=translated_text,
+        description_language=description_language,
+        translation_language=translation_language,
+    )
 
 @app.route('/books/add', methods=['GET', 'POST'])
 def add():
+    # must be logged in
     if "credentials" not in session:
         session['login_return'] = url_for('.add')
         return redirect(url_for('.login'))
@@ -181,6 +218,7 @@ def add():
 
 @app.route('/books/<book_id>/edit', methods=['GET', 'POST'])
 def edit(book_id):
+    # must be logged in
     if "credentials" not in session:
         session['login_return'] = url_for('.edit', book_id=book_id)
         return redirect(url_for('.login'))
@@ -200,11 +238,13 @@ def edit(book_id):
 
 @app.route('/books/<book_id>/delete')
 def delete(book_id):
+    # must be logged in
     if "credentials" not in session:
         session['login_return'] = url_for('.view', book_id=book_id)
         return redirect(url_for('.login'))
     booksdb.delete(book_id)
     return redirect(url_for('.list'))
+
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
@@ -237,6 +277,7 @@ def profile():
     # render form to update book
     return render_template('profile.html', action='Edit',
         profile=profile, languages=translate.get_languages())
+
 
 # this is only used when running locally
 if __name__ == '__main__':

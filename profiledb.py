@@ -1,5 +1,7 @@
 from google.cloud import firestore
+
 default_profile = { "preferredLanguage": "en" }
+
 
 def __document_to_dict(doc):
     if not doc.exists:

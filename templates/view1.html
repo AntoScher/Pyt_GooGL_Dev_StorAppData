@@ -29,7 +29,12 @@
             <small>{{book.publishedDate}}</small>
         </h4>
         <h5 class="book-author">By {{book.author|default('Unknown', True)}}</h5>
-        <p class="book-description">{{book.description}}</p>
+                {% if translation_language is not none %}
+        <p class="book-description"><strong>Description ({{description_language}}): </strong>{{book.description}}</p>
+        <p class="book-description"><strong>Translation ({{translation_language}}): </strong>{{translated_text}}</p>
+        {% else %}
+        <p class="book-description"><strong>Description: </strong>{{book.description}}</p>
+        {% endif %}
     </div>
 </div>
 

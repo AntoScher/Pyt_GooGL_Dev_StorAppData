@@ -72,3 +72,4 @@ def handle_callback(callback_uri, client_config, scopes, request_url, stored_sta
     user_info = oauth2_client.userinfo().get().execute()
 
     return _credentials_to_dict(credentials), user_info
+

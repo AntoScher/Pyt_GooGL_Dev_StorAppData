@@ -3,10 +3,12 @@ from flask import request, url_for, session
 import booksdb
 import storage
 import secrets
-import oauth
 import json
 import os
 from urllib.parse import urlparse
+import oauth
+import translate
+import profiledb
 
 app = Flask(__name__)
 app.config.update(
@@ -43,6 +45,7 @@ def upload_image_file(img):
         'Uploaded file %s as %s.', img.filename, public_url)
 
     return public_url
+
 
 def logout_session():
     """
@@ -149,6 +152,7 @@ def logout():
     logout_session()
     return redirect(url_for('.list'))
 
+
 @app.route('/')
 def list():
     books = booksdb.list()
@@ -161,6 +165,7 @@ def view(book_id):
 
 @app.route('/books/add', methods=['GET', 'POST'])
 def add():
+    # must be logged in
     if "credentials" not in session:
         session['login_return'] = url_for('.add')
         return redirect(url_for('.login'))
@@ -179,6 +184,7 @@ def add():
 
 @app.route('/books/<book_id>/edit', methods=['GET', 'POST'])
 def edit(book_id):
+    # must be logged in
     if "credentials" not in session:
         session['login_return'] = url_for('.edit', book_id=book_id)
         return redirect(url_for('.login'))
@@ -198,11 +204,46 @@ def edit(book_id):
 
 @app.route('/books/<book_id>/delete')
 def delete(book_id):
+    # must be logged in
     if "credentials" not in session:
         session['login_return'] = url_for('.view', book_id=book_id)
         return redirect(url_for('.login'))
     booksdb.delete(book_id)
     return redirect(url_for('.list'))
+
+
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    """
+    If GET, show the form to collect updated details for the user profile.
+    If POST, update the profile based on the specified form.
+    """
+    # must be logged in
+    if "credentials" not in session:
+        session['login_return'] = url_for('.profile')
+        return redirect(url_for('.login'))
+
+    # read existing profile
+    email = session['user']['email']
+    profile = profiledb.read(email)
+
+    # Save details if form was posted
+    if request.method == 'POST':
+
+        # get book details from form
+        data = request.form.to_dict(flat=True)
+
+        # update profile
+        profiledb.update(data, email)
+        session['preferred_language'] = data['preferredLanguage']
+
+        # return to root
+        return redirect(url_for('.list'))
+
+    # render form to update book
+    return render_template('profile.html', action='Edit',
+        profile=profile, languages=translate.get_languages())
+
 
 # this is only used when running locally
 if __name__ == '__main__':
