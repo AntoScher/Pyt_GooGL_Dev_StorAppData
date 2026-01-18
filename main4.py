@@ -10,6 +10,8 @@ import booksdb
 import storage
 import secrets
 import oauth
+import translate
+import profiledb
 
 def upload_image_file(img):
     """
@@ -61,6 +63,11 @@ def log_request(req):
     Log request
     """
     current_app.logger.info('REQ: {0} {1}'.format(req.method, req.url))
+
+# build a mapping of language codes to display names
+display_languages = {}
+for l in translate.get_languages():
+    display_languages[l.language_code] = l.display_name
 
 
 def logout_session():
@@ -201,9 +208,30 @@ def view(book_id):
 
     # retrieve a specific book
     book = booksdb.read(book_id)
+    current_app.logger.info(f"book={book}")
+
+    # defaults if logged out
+    description_language = None
+    translation_language = None
+    translated_text = ''
+    if book['description'] and "credentials" in session:
+        preferred_language = session.get('preferred_language', 'en')
+
+        # translate description
+        translation = translate.translate_text(
+            text=book['description'],
+            target_language_code=preferred_language,
+        )
+        description_language = display_languages[translation.detected_language_code]
+        translation_language = display_languages[preferred_language]
+        translated_text = translation.translated_text
 
     # render book details
-    return render_template('view.html', book=book)
+    return render_template('view.html', book=book,
+        translated_text=translated_text,
+        description_language=description_language,
+        translation_language=translation_language,
+    )
 
 
 @app.route('/books/add', methods=['GET', 'POST'])
@@ -213,7 +241,7 @@ def add():
     If POST, create the new book based on the specified form.
     """
     log_request(request)
-    
+
     # must be logged in
     if "credentials" not in session:
         session['login_return'] = url_for('.add')
@@ -298,6 +326,42 @@ def delete(book_id):
     return redirect(url_for('.list'))
 
 
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    """
+    If GET, show the form to collect updated details for the user profile.
+    If POST, update the profile based on the specified form.
+    """
+    log_request(request)
+
+    # must be logged in
+    if "credentials" not in session:
+        session['login_return'] = url_for('.profile')
+        return redirect(url_for('.login'))
+
+    # read existing profile
+    email = session['user']['email']
+    profile = profiledb.read(email)
+
+    # Save details if form was posted
+    if request.method == 'POST':
+
+        # get book details from form
+        data = request.form.to_dict(flat=True)
+
+        # update profile
+        profiledb.update(data, email)
+        session['preferred_language'] = data['preferredLanguage']
+
+        # return to root
+        return redirect(url_for('.list'))
+
+    # render form to update book
+    return render_template('profile.html', action='Edit',
+        profile=profile, languages=translate.get_languages())
+
+
 # this is only used when running locally
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
+

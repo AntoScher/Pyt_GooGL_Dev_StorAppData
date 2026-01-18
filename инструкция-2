@@ -1,0 +1,1181 @@
+Task 1. Set up the Python application and necessary resources
+In this task, you download the Python application and create the resources used by the current version of the app.
+
+Note: For most languages, indentation is used to make code more readable. Python uses indentation to indicate a block of code, so indentation must be correct. The number of spaces used for indentation must be consistent. Mixing space and tabs for indentation can also cause issues. This lab uses four spaces for Python indentation.
+Create the Firestore database
+To create the Firestore database, in Cloud Shell, run the following command:
+
+gcloud firestore databases create --location=region
+Copied!
+The Firestore database is used to store book and user profile data.
+
+If you're asked to authorize Cloud Shell, click Authorize.
+
+Create the Cloud Storage bucket with the correct permissions
+To create the Cloud Storage bucket, run the following command:
+
+gcloud storage buckets create gs://project_id-covers --location=region --no-public-access-prevention --uniform-bucket-level-access
+Copied!
+The Cloud Storage bucket is used to store book cover images. The bucket has uniform bucket level access and does not use public access prevention.
+
+Note: If the command fails and the error indicates that the account does not have any valid credentials, try the command again. The permissions for the Google Skills student account might not have propagated yet.
+To make all objects in the bucket publicly readable, run the following command:
+
+gcloud storage buckets add-iam-policy-binding gs://project_id-covers --member=allUsers --role=roles/storage.legacyObjectReader
+Copied!
+To verify the objective, click Check my progress.
+Set up the Python application and necessary resources
+
+Copy the Python code to Cloud Shell
+To copy the Python code from a Cloud Storage bucket into the home directory, run the following command:
+
+gcloud storage cp gs://cloud-training/devapps-foundations/code/lab2/bookshelf.zip ~ && unzip ~/bookshelf.zip -d ~ && rm ~/bookshelf.zip
+Copied!
+To check the contents of the bookshelf directory, run the following command:
+
+cd ~
+ls -R bookshelf
+Copied!
+You should see a list that contains three Python files, a requirements file, and four template files:
+
+bookshelf:
+booksdb.py  main.py  requirements.txt  storage.py  templates
+
+bookshelf/templates:
+base.html  form.html  list.html  view.html
+Install the required dependencies
+To list the dependencies in the requirements file, run the following command:
+
+cat ~/bookshelf/requirements.txt
+Copied!
+The requirements file specifies the following dependencies:
+
+Flask: a web framework module used to design Python web applications
+Gunicorn: a Python HTTP server that runs on Linux
+Cloud Logging: used to log information from the application
+Firestore: a fast, fully managed, serverless, NoSQL document database built for ease of application development
+Cloud Storage: Google Cloud's unified object storage
+To install the dependencies in the requirements file, run the following command:
+
+pip3 install -r ~/bookshelf/requirements.txt --user
+Copied!
+pip is the package installer for Python. This pip3 command installs the packages specified in the requirements.txt file for use with Python version 3.
+
+Test the application
+To start the application, run the following command:
+
+cd ~/bookshelf; ~/.local/bin/gunicorn -b :8080 main:app
+Copied!
+If you have successfully created the files, the application should now be hosted on port 8080.
+
+To run the application in the web browser, click Web Preview, and then select Preview on port 8080.
+
+Web Preview on port 8080
+
+A new tab is opened in the browser, and the application is running. This page displays a list of all existing books. There are no books yet.
+
+Note: If asked to authorize Cloud Shell, click Authorize.
+Right-click this Wizard of Oz book cover image, and save it to your computer as oz.png:
+
+Wizard of Oz book cover
+
+In the application tab, click +Add book.
+
+Enter the following information into the form:
+
+Field	Value
+Title	Wonderful Wizard of Oz
+Author	Frank L. Baum
+Date Published	1900
+Description	A young girl and her dog are carried away to a magical land, where they meet a bunch of unusual people and learn not to stand under houses.
+For Cover Image, click Choose File.
+
+Select the file that you downloaded (oz.png), and click Open.
+
+Click Save.
+
+You're returned to the view page, and your book details are shown.
+
+At the top of the page, click Books.
+
+You're returned to the list page, and Wonderful Wizard of Oz is shown in the list, along with its book cover. The book details are stored in the Firestore database, and the cover image is stored in Cloud Storage.
+
+Note: You can add other books, but do not modify Oz. It will be used for the rest of this lab.
+In Cloud Shell, to quit the application, enter CTRL-C.
+
+To verify the objective, click Check my progress.
+Test the application and create a book
+
+Task 2. Create OAuth authorization credentials for your application
+In this task, you create authorization credentials that identify your application to Google's OAuth 2.0 server.
+
+Create the OAuth consent screen
+When you use OAuth 2.0 for authorization, your app requests one or more scopes of access from a Google Account. Google displays a consent screen to the user to capture the user's consent to share data with the application.
+
+In the Google Cloud console, select the Navigation menu (Navigation menu icon), and then select APIs & Services > OAuth consent screen.
+
+This page lets you select the type of users that will use your application. Internal users are users within your organization. External users are any users with a Google Account.
+
+Click Get Started.
+
+For App name, enter Bookshelf.
+
+For User support email, select the student email.
+
+Click Next.
+
+For Audience, select External, and then click Next.
+
+Users with a test account will be able to log in to the app.
+
+On the left panel of the lab instructions, copy the Username.
+
+Copy username
+
+For Email addresses, paste the copied username, and then click Next.
+
+Enable the checkbox to agree to the user data policy, and then click Continue.
+
+Click Create.
+
+In the navigation menu, click Branding.
+
+Click + Add Domain.
+
+In the Authorized domains section, for Authorized domain 1, enter cloudshell.dev.
+
+When the application is running in Cloud Shell, cloudshell.dev is the domain name.
+
+Click Save.
+
+In the navigation menu, click Data Access.
+
+Next, you need to select scopes that will be requested of users for your application. Scopes express the types of private user data in the user's Google Account that the application would like to access.
+
+There are three types of scopes:
+
+Sensitive scopes require verification by Google before they can be presented to the user in a consent screen.
+Restricted scopes include even more sensitive information, from apps like Gmail and Drive, and can require a more extensive review.
+Non-sensitive scopes are scopes that are less sensitive, and they do not require verification by Google.
+Click Add or Remove Scopes.
+
+A list of scopes is presented.
+
+At the beginning of the list, select the box next to openid.
+
+For Filter, enter userinfo.profile, press Enter, and then select the box next to the .../auth/userinfo.profile scope.
+
+For Filter, clear the userinfo.profile filter, enter contacts, press Enter, and then select the box for the .../auth/contacts scope.
+
+Click Update.
+
+You should see two non-sensitive scopes (openid and userinfo.profile), and one sensitive scope (contacts).
+
+Note: This lab will not use the contacts scope, but it's just used as an example. Your applications should use the minimum scopes required for the application.
+Click Save.
+
+In the navigation menu, click Audience.
+
+Test users are required when users are external and publishing status is set to Testing.
+
+Click + Add Users.
+
+On the left panel of the lab instructions, copy the Username again.
+
+In the Add users pane, paste the copied username into the box, and then click Save.
+
+Create the OAuth 2.0 credentials
+In the navigation menu, click Clients, and then click + Create Client.
+
+For Application type, select Web application.
+
+For Name, enter Bookshelf.
+
+For Authorized redirect URIs, click + Add URI.
+
+The URI specified here will be used when Google redirects the browser back to the application after capturing user consent.
+
+To get the redirect URI, in Cloud Shell, run the following command:
+
+echo "https://8080-${WEB_HOST}/oauth2callback"
+Copied!
+Copy the URI that was created by the echo command, and then, for URIs 1, paste in the URI.
+
+Click Create.
+
+Click Download JSON, and then save the client secret JSON to your local machine.
+
+The client secret file will be used to verify your app with Google.
+
+Click Close.
+
+In Cloud Shell, click More (More icon) in the top-right toolbar, and then click Upload.
+
+Click Choose Files, and select the client secret JSON file, and then click Open.
+
+Click Upload.
+
+The client secret JSON file is now available in the home directory. The contents of this file will be used during the OAuth process.
+
+In Cloud Shell, run the following command:
+
+cat ~/client_secret_*.json
+Copied!
+The JSON contents include the client_secret, which should be treated like a password. For example, you never want to store this JSON file into a code repository.
+
+Store client secret JSON in Secret Manager
+Secret Manager is a secure and recommended place to store the client secret JSON file.
+
+To enable the Secret Manager API, run the following command:
+
+gcloud services enable secretmanager.googleapis.com
+Copied!
+To rename the client secret file, run the following command:
+
+mv ~/client_secret*.json ~/client_secret.json
+Copied!
+To create the secret, run the following command:
+
+gcloud secrets create bookshelf-client-secrets --data-file=$HOME/client_secret.json
+Copied!
+There is now a secret named bookshelf-client-secrets that can be accessed from your application.
+
+Another secret value that is needed for your application is the Flask secret key, which is used to sign information in cookies.
+
+To create a secret for the Flask secret key, run the following command:
+
+tr -dc A-Za-z0-9 </dev/urandom | head -c 20 | gcloud secrets create flask-secret-key --data-file=-
+Copied!
+This command creates a random 20 character alphanumeric password, and then stores it in a secret named flask-secret-key.
+
+To verify the objective, click Check my progress.
+Create OAuth authorization credentials for your application
+
+Task 3. Use Secret Manager for retrieving secrets in the application
+In this task, you modify the application to use Secret Manager.
+
+Modify the requirements file to add Secret Manager
+Open the file called requirements.txt with nano using the following command:
+
+nano ~/bookshelf/requirements.txt
+Copied!
+In the requirements file, use the down arrow to move to the first empty line, and then add the following line:
+
+google-cloud-secret-manager==2.24.0
+Copied!
+The requirements.txt file should now look like this:
+
+Flask==3.1.1
+gunicorn==23.0.0
+google-cloud-logging==3.12.1
+google-cloud-firestore==2.21.0
+google-cloud-storage==2.17.0
+google-cloud-secret-manager==2.24.0
+To save the file and exit, click CTRL-X, click Y, and then click Enter.
+
+To install the updated versions of the dependencies, run the following command:
+
+pip3 install -r ~/bookshelf/requirements.txt --user
+Copied!
+Create a function to retrieve secrets
+The secrets.py file contains code to retrieve secrets from Secret Manager.
+
+To create the secrets.py file, run the following command:
+
+cat > ~/bookshelf/secrets.py <<EOF
+import os
+from google.cloud import secretmanager
+
+def get_secret(secret_id, version_id='latest'):
+
+    # create the secret manager client
+    client = secretmanager.SecretManagerServiceClient()
+
+    # build the resource name of the secret version
+    project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
+
+    # access the secret version
+    response = client.access_secret_version(name=name)
+
+    # return the decoded secret
+    return response.payload.data.decode('UTF-8')
+
+EOF
+Copied!
+The get_secret() function accepts a secret ID and an optional version ID. The requested secret is returned from the function.
+
+Modify main.py to use Secret Manager
+The main code file should call Secret Manager to retrieve secrets.
+
+In a file editor, open the file ~/bookshelf/main.py.
+
+After the import for storage, add the following line:
+
+import secrets
+Copied!
+This line imports the secrets.py file you just created.
+
+In the app.config.update function call, change the SECRET_KEY from:
+
+    SECRET_KEY='secret', # don't store SECRET_KEY in code in a production app
+to:
+
+    SECRET_KEY=secrets.get_secret('flask-secret-key'),
+Copied!
+The Flask secret key is no longer stored in the application code.
+
+Save the file.
+
+Task 4. Create functions for OAuth flow
+In this task, you add functions that manage the OAuth login flow.
+
+When a user logs in to the web application, the app will start the OAuth authorization sequence. OAuth allows the user to authenticate and consent to access being requested by the application. The OAuth authorization sequence looks like this:
+
+OAuth authorization sequence
+
+The authorization sequence begins when the application redirects the browser to a Google URL. Google handles the user authentication, session selection, and user consent. The result is an authorization code, which the application can exchange for an access token and a refresh token.
+
+The application stores the refresh token for future use, and uses the access token to access Google APIs. The Bookshelf application calls a Google API to retrieve information about the user. When the access token expires, the application uses the refresh token to obtain a new access token.
+
+Add dependencies
+The Python OAuth client for Google requires three more Python packages.
+
+In the ~/bookshelf/requirements.txt file, add the following lines:
+
+google-api-python-client==2.178.0
+google-auth==2.40.3
+google-auth-oauthlib==1.2.2
+Copied!
+The requirements.txt file should now look like this:
+
+Flask==3.1.1
+gunicorn==23.0.0
+google-cloud-logging==3.12.1
+google-cloud-firestore==2.21.0
+google-cloud-storage==2.17.0
+google-cloud-secret-manager==2.24.0
+google-api-python-client==2.178.0
+google-auth==2.40.3
+google-auth-oauthlib==1.2.2
+Save the file.
+
+To install the updated versions of the dependencies, run the following command:
+
+pip3 install -r ~/bookshelf/requirements.txt --user
+Copied!
+Add OAuth functions to manage the authorization flow
+The oauth.py file contains code to retrieve an OAuth token from Google.
+
+To create the oauth.py file, run the following command:
+
+cat > ~/bookshelf/oauth.py <<EOF
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
+from uuid import uuid4
+from googleapiclient.discovery import build
+from werkzeug.exceptions import Unauthorized
+
+def _credentials_to_dict(credentials):
+    """
+    Convert credentials mapping (object) into a dictionary.
+    """
+    return {
+        'token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_uri': credentials.token_uri,
+        'client_id': credentials.client_id,
+        'client_secret': credentials.client_secret,
+        'scopes': credentials.scopes,
+        'id_token': credentials.id_token,
+    }
+
+
+def authorize(callback_uri, client_config, scopes):
+    """
+    Builds the URL that will be used for redirection to Google
+    to start the OAuth flow.
+    """
+
+    # specify the flow configuration details
+    flow = google_auth_oauthlib.flow.Flow.from_client_config(
+        client_config=client_config,
+        scopes=scopes,
+    )
+    flow.redirect_uri = callback_uri
+
+    # create a random state
+    state = str(uuid4())
+
+    # get the authorization URL
+    authorization_url, state = flow.authorization_url(
+        # offline access allows access token refresh without reprompting the user
+        # using online here to force log in
+        access_type='online',
+        state=state,
+        prompt='consent',
+        include_granted_scopes='false',
+    )
+
+    return authorization_url, state
+
+def handle_callback(callback_uri, client_config, scopes, request_url, stored_state, received_state):
+    """
+    Fetches credentials using the authorization code in the request URL,
+    and retrieves user information for the logged-in user.
+    """
+
+    # validate received state
+    if received_state != stored_state:
+        raise Unauthorized(f'Invalid state parameter: received={received_state} stored={stored_state}')
+
+    # specify the flow configuration details
+    flow = google_auth_oauthlib.flow.Flow.from_client_config(
+        client_config=client_config,
+        scopes=scopes
+    )
+    flow.redirect_uri = callback_uri
+
+    # get a token using the details in the request
+    flow.fetch_token(authorization_response=request_url)
+    credentials = flow.credentials
+
+    oauth2_client = build('oauth2','v2',credentials=credentials, cache_discovery=False)
+    user_info = oauth2_client.userinfo().get().execute()
+
+    return _credentials_to_dict(credentials), user_info
+
+EOF
+Copied!
+The authorize() function starts the authorization sequence. It configures the flow by using the passed in client_config parameter, which will be built from the OAuth configuration JSON string stored as a secret. The callback_uri specifies where Google will call with the authorization code. This URI must match a URI configured as an authorized redirect URI for the Bookshelf application. The flow.authorization_url() call builds the full URL for the redirection to Google. A state is created and passed in, and it will be stored in the session to match this call with the eventual callback. The authorization URL and state are returned to the caller.
+
+The handle_callback() function is used when the callback is received from Google. The state specified in the callback URL must match the stored state that was sent in the authorization URL. The flow.fetch_token() call can then be used to fetch the credentials, including the refresh and access tokens. The returned credentials are then used to call Google and receive user info for the logged-in user. The credentials and user info are then returned to the caller.
+
+Note: The oauth2_client.userinfo() line might show an error message in your IDE indicating that there is no userinfo member. A Resource object is returned by build(), and the valid members are not known at compile time. This error can be ignored.
+Task 5. Add login, callback, and logout endpoints
+In this task, you use the OAuth functions you just created to implement login, logout, and callback endpoints.
+
+Modify the HTML templates
+To create an error template, run the following command:
+
+cat > ~/bookshelf/templates/error.html <<EOF
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3>Error: {{error_message}}</h3>
+
+{% endblock %}
+
+EOF
+Copied!
+When logging in, the user might encounter an error. This page will be used to display the error.
+
+In a file editor, open the file ~/bookshelf/templates/base.html.
+
+Login and logout links will be added to the application.
+
+In the navbar section, on the line after the closing tag (/ul) of the unordered list (ul) with class="nav navbar-nav", add the following section:
+
+                <ul class="nav navbar-nav navbar-right">
+                    {% if session['credentials'] %}
+                    <div class="navbar-brand">{{session['user'].email}}</div>
+                    <div class="navbar-brand"><a href="/logout">Logout</a></div>
+                    {% else %}
+                    <div class="navbar-brand"><a href="/login">Login</a></div>
+                    {% endif %}
+                </ul>
+Copied!
+The file will now look like this:
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Bookshelf</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    </head>
+    <body>
+        <div class="navbar navbar-default">
+            <div class="container">
+                <div class="navbar-header">
+                    <div class="navbar-brand">Bookshelf</div>
+                </div>
+                <ul class="navbar-nav">
+                    <li><a href="/">Books</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    {% if session['credentials'] %}
+                    <div class="navbar-brand">{{session['user'].email}}</div>
+                    <div class="navbar-brand"><a href="/logout">Logout</a></div>
+                    {% else %}
+                    <div class="navbar-brand"><a href="/login">Login</a></div>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </body>
+</html>
+The base template now uses the session to check if the user is logged in. If the user is logged in, the user's email address and a logout link are shown. If the user is not logged in, a login link is shown.
+
+Save the file.
+
+Modify imports
+In a file editor, open the file ~/bookshelf/main.py.
+
+Add session to the flask imports.
+
+The flask imports should now look like this:
+
+from flask import current_app, Flask, redirect, render_template
+from flask import request, url_for, session
+A session will provide access to information that is associated with the logged-in user. The session data will be stored in cookies.
+
+After the cloud_logging import line, add the following lines:
+
+import json
+import os
+from urllib.parse import urlparse
+Copied!
+In main.py, the json library is used to convert the client secret string to a mapping (object), and the os library is used to use environment variables. The urlparse() function will be used to replace the scheme and hostname in a URL.
+
+After the import for secrets, add the following line:
+
+import oauth
+Copied!
+This imports the OAuth functions you created.
+
+Add configuration items
+In the app.config.update() function call, add the following lines after the ALLOWED_EXTENSIONS line:
+
+    CLIENT_SECRETS=json.loads(secrets.get_secret('bookshelf-client-secrets')),
+    SCOPES=[
+        'openid',
+        'https://www.googleapis.com/auth/contacts.readonly',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+    ],
+    EXTERNAL_HOST_URL=os.getenv('EXTERNAL_HOST_URL'),
+Copied!
+The following configuration items are added:
+
+CLIENT_SECRETS contains a mapping (object) for the OAuth configuration that was stored in Secret Manager.
+SCOPES contains a list of scopes to be requested.
+EXTERNAL_HOST_URL is used to determine the callback URL. When you use Web Preview with Cloud Shell, the application set to run as localhost (127.0.0.1) port 80 is exposed to the internet on https://8080-...-cloudshell.dev. This URL will be used to convert the localhost URL for the callback endpoint to the publicly accessible URL. The value will be passed in as an environment variable.
+Add endpoints and supporting functions
+After the log_request() function (which starts with def log_request():), add the following functions:
+
+
+def logout_session():
+    """
+    Clears known session items.
+    """
+    session.pop('credentials', None)
+    session.pop('user', None)
+    session.pop('state', None)
+    session.pop('error_message', None)
+    session.pop('login_return', None)
+    return
+
+
+def external_url(url):
+    """
+    Cloud Shell routes https://8080-***/ to localhost over http
+    This function replaces the localhost host with the configured scheme + hostname
+    """
+    external_host_url = current_app.config['EXTERNAL_HOST_URL']
+    if external_host_url is None:
+        # force https
+        if url.startswith('http://'):
+            url = f"https://{url[7:]}"
+        return url
+
+    # replace the scheme and hostname with the external host URL
+    parsed_url = urlparse(url)
+    replace_string = f"{parsed_url.scheme}://{parsed_url.netloc}"
+    new_url = f"{external_host_url}{url[len(replace_string):]}"
+    return new_url
+
+
+@app.route('/error')
+def error():
+    """
+    Display an error.
+    """
+
+    log_request(request)
+
+    if "error_message" not in session:
+        return redirect(url_for('.list'))
+
+    # render error
+    return render_template('error.html', error_message=session.pop('error_message', None))
+
+
+@app.route("/login")
+def login():
+    """
+    Login if not already logged in.
+    """
+    log_request(request)
+
+    if not "credentials" in session:
+        # need to log in
+
+        current_app.logger.info('logging in')
+
+        # get authorization URL
+        authorization_url, state = oauth.authorize(
+            callback_uri=external_url(url_for('oauth2callback', _external=True)),
+            client_config=current_app.config['CLIENT_SECRETS'],
+            scopes=current_app.config['SCOPES'])
+
+        current_app.logger.info(f"authorization_url={authorization_url}")
+
+        # save state for verification on callback
+        session['state'] = state
+
+        return redirect(authorization_url)
+
+    # already logged in
+    return redirect(session.pop('login_return', url_for('.list')))
+
+
+@app.route("/oauth2callback")
+def oauth2callback():
+    """
+    Callback destination during OAuth process.
+    """
+    log_request(request)
+
+    # check for error, probably access denied by user
+    error = request.args.get('error', None)
+    if error:
+        session['error_message'] = f"{error}"
+        return redirect(url_for('.error'))
+
+    # handle the OAuth2 callback
+    credentials, user_info = oauth.handle_callback(
+        callback_uri=external_url(url_for('oauth2callback', _external=True)),
+        client_config=current_app.config['CLIENT_SECRETS'],
+        scopes=current_app.config['SCOPES'],
+        request_url=external_url(request.url),
+        stored_state=session.pop('state', None),
+        received_state=request.args.get('state', ''))
+
+    session['credentials'] = credentials
+    session['user'] = user_info
+    current_app.logger.info(f"user_info={user_info}")
+
+    return redirect(session.pop('login_return', url_for('.list')))
+
+
+@app.route("/logout")
+def logout():
+    """
+    Log out and return to root page.
+    """
+    log_request(request)
+
+    logout_session()
+    return redirect(url_for('.list'))
+Copied!
+The logout_session() function clears known session entries.
+
+The external_url() function replaces the scheme and hostname of a URL with a different hostname for external access. If the replacement hostname is not specified, the function will ensure that the returned URL is using https.
+
+The /error endpoint is used to display an error.
+
+The /login endpoint checks the session to see if a user is logged in. A user is logged in if credentials are stored in the session. If the user is not logged in, oauth.authorize() is called to get the authorization URL and state for the redirection to Google. The state is saved in the session, and then the browser is redirected to the authorization URL.
+
+The /oauth2callback endpoint is called by Google during the authorization process. If there was an error, then the process was unsuccessful, and the user is redirected to the error page. If not an error, handle_callback() is called to retrieve the token and user information. At the end of the process, the user is redirected to the previous page where the login was automatically started, or to the root page (book list) if there is no return location.
+
+The /logout endpoint logs out the user by removing credentials and user data from the session, and returns to the root page.
+
+Force log in when adding, editing, or deleting books
+A user can browse the books on the bookshelf without being logged in. However, it makes sense to force a user to log in before they can modify the books in any way.
+
+When a user tries to add, edit, or delete a book, but they are not logged in, they should be forced to login.
+
+In the add() function, directly after the call to log_request(), add the following lines:
+
+
+    # must be logged in
+    if "credentials" not in session:
+        session['login_return'] = url_for('.add')
+        return redirect(url_for('.login'))
+Copied!
+In add(), if the user is not logged in, they are returned to the add page after login.
+
+In the edit() function, directly after the call to log_request(), add the following lines:
+
+
+    # must be logged in
+    if "credentials" not in session:
+        session['login_return'] = url_for('.edit', book_id=book_id)
+        return redirect(url_for('.login'))
+Copied!
+In edit(), if the user is not logged in, they are returned to the edit page for this book after login.
+
+In the delete() function, directly after the call to log_request(), add the following lines:
+
+
+    # must be logged in
+    if "credentials" not in session:
+        session['login_return'] = url_for('.view', book_id=book_id)
+        return redirect(url_for('.login'))
+Copied!
+In delete(), if the user is not logged in, they are returned to the view page for this book after login.
+
+Save the file.
+
+Test the application
+To start the HTTP server, in Cloud Shell, run the following command:
+
+cd ~/bookshelf; EXTERNAL_HOST_URL="https://8080-$WEB_HOST" ~/.local/bin/gunicorn -b :8080 main:app
+Copied!
+There is an environment variable being passed in to the application:
+
+EXTERNAL_HOST_URL specifies the scheme and hostname that should be used in the callback URL. If this environment variable is not specified, the redirect_uri passed to Google in the authorization URL will use the hostname that the application sees in incoming URLs: 127.0.0.1:8080, which is localhost. Web Preview forwards requests from the cloudshell.dev URL to localhost (http://127.0.0.1:8080).
+Note: If asked to authorize Cloud Shell, click Authorize.
+To open the application in the web browser, click Web Preview, and then select Preview on port 8080.
+
+Web Preview on port 8080
+
+A new tab is opened in the browser, and the application is running. You should see the Wizard of Oz book. The user is not logged in.
+
+Click + Add book.
+
+You must be logged in to add a book, so you're asked to choose an account for signing in with Google:
+
+Choose an account
+
+Click the student email, and then click Continue.
+
+Google will now obtain consent for any restricted or non-sensitive scopes that are being requested. In this case, downloading all of your contacts is a sensitive scope.
+
+Obtain consent
+
+Click Allow.
+
+You're returned to the application on the Add book page. You're logged in, with your email in the upper right corner. If you look at the logs in Cloud Shell, you should see the callback call from Google:
+
+INFO:main:REQ: GET http://127.0.0.1:8080/oauth2callback?state=88789b07-2474-423f-b572-f5d4a3240ace&code=4g0AfJohXm0vtB2eYHnRaAeM8m-VCmnssg5YgrjoJstTLmHaVq8nlbJo5uzIS67NbWTXTOqDw&scope=email%20profile%20openid%20https://www.googleapis.com/auth/contacts.readonly%20https://www.googleapis.com/auth/userinfo.email%20https://www.googleapis.com/auth/userinfo.profile&authuser=0&hd=qwiklabs.net&prompt=consent
+The user consented to access, so the parameter named code has the authorization code that was subsequently exchanged for the credentials. The scopes allowed are also returned.
+
+Click Books, and then click + Add Book.
+
+You're already logged in, so you can go directly to the Add book page.
+
+Click Logout, and then click Login.
+
+Click the student email, then click Continue, and then click Cancel.
+
+You're returned to the error page. Look at the logs in Cloud Shell. You should see the callback made by Google, which should look something like this:
+
+INFO:main:REQ: GET http://127.0.0.1:8080/oauth2callback?error=access_denied&state=72342071-c8dc-43be-8184-9f6bd6069cd5
+In this case, the consent was not provided, so the authorization code was not returned and the application cannot get credentials for the user.
+
+In Cloud Shell, to quit the application, enter CTRL-C.
+
+To verify the objective, click Check my progress.
+Add login, callback, and logout endpoints
+
+Task 6. Create functions for translation
+In this task, you create functions that use the Cloud Translation API to detect text language and translate text.
+
+Calls to the Cloud Translation API use the credentials of the application.
+
+Add Cloud Translation dependency
+The application requires another Python package.
+
+In the ~/bookshelf/requirements.txt file, add the following line:
+
+google-cloud-translate==3.21.1
+Copied!
+The requirements.txt file should now look like this:
+
+Flask==3.1.1
+gunicorn==23.0.0
+google-cloud-logging==3.12.1
+google-cloud-firestore==2.21.0
+google-cloud-storage==2.17.0
+google-cloud-secret-manager==2.24.0
+google-api-python-client==2.178.0
+google-auth==2.40.3
+google-auth-oauthlib==1.2.2
+google-cloud-translate==3.21.1
+Save the file.
+
+To install the updated dependencies, run the following command:
+
+pip3 install -r ~/bookshelf/requirements.txt --user
+Copied!
+Add translation functions
+The translate.py file contains code to perform translation.
+
+To create the translate.py file, run the following command:
+
+cat > ~/bookshelf/translate.py <<EOF
+import os
+from google.cloud import translate
+
+PROJECT_ID = os.getenv('GOOGLE_CLOUD_PROJECT')
+PARENT = f"projects/{PROJECT_ID}"
+
+supported_languages = None
+
+def get_languages():
+    """
+    Gets the list of supported languages.
+    """
+
+    # use the global variable
+    global supported_languages
+
+    # retrieve supported languages if not previously retrieved
+    if not supported_languages:
+        client = translate.TranslationServiceClient()
+
+        response = client.get_supported_languages(
+            parent=PARENT,
+            display_language_code='en',
+        )
+
+        supported_languages = response.languages
+
+    return supported_languages
+
+
+def detect_language(text):
+    """
+    Detect the language of the supplied text.
+    Returns the most likely language.
+    """
+
+    client = translate.TranslationServiceClient()
+
+    response = client.detect_language(
+        parent=PARENT,
+        content=text,
+    )
+
+    return response.languages[0]
+
+
+def translate_text(text, target_language_code):
+    """
+    Translate the text to the target language.
+    """
+
+    client = translate.TranslationServiceClient()
+
+    response = client.translate_text(
+        parent=PARENT,
+        contents=[text],
+        target_language_code=target_language_code,
+    )
+
+    return response.translations[0]
+
+EOF
+Copied!
+The get_languages() function retrieves the list of languages supported by the Cloud Translation API. Each language in the list contains an ID (language_code) and the display text (display_name).
+
+The detect_language() function detects the language for a text string.
+
+The translate_language() function translates text into a specified language.
+
+Task 7. Create a user profile for language selection and translate descriptions
+In this task, you create a user profile for logged-in users. A preferred language can be selected for the user.
+
+The profile will be stored in a Firestore collection named profiles. A default profile with a preferred language of English will be used until the user updates the profile.
+
+Add functions to read and update profiles
+The profiledb.py file contains code to read and update user profiles. The email address of the user will be used as the profile key. In this implementation, the only item in the profile will be the preferred language.
+
+To create the profiledb.py file, run the following command:
+
+cat > ~/bookshelf/profiledb.py <<EOF
+from google.cloud import firestore
+
+
+default_profile = { "preferredLanguage": "en" }
+
+
+def __document_to_dict(doc):
+    if not doc.exists:
+        return None
+    doc_dict = doc.to_dict()
+    doc_dict['id'] = doc.id
+    return doc_dict
+
+
+def read(email):
+    """
+    Return a profile by email.
+    """
+
+    db = firestore.Client()
+
+    # retrieve a profile from the database by ID
+    profile_ref = db.collection("profiles").document(email)
+
+    profile_dict = __document_to_dict(profile_ref.get())
+
+    # return empty dictionary if no profile
+    if profile_dict is None:
+        profile_dict = default_profile.copy()
+
+    return profile_dict
+
+
+def read_entry(email, key, default_value=''):
+    """
+    Return a profile entry by email and key.
+    """
+
+    profile_dict = read(email)
+    return profile_dict.get(key, default_value)
+
+
+def update(data, email):
+    """
+    Update a profile, and return the updated profile's details.
+    """
+
+    db = firestore.Client()
+
+    # update profile in database
+    profile_ref = db.collection("profiles").document(email)
+    profile_ref.set(data)
+
+    return __document_to_dict(profile_ref.get())
+
+EOF
+Copied!
+The read() function retrieves a profile for a specified user. If a profile is not found, a copy of the default profile is returned.
+
+The read_entry() function returns a single value from a user's profile. If the key is not found in the user's profile, the passed in default value is returned instead.
+
+The update() function creates or overwrites the user's profile with the specified data.
+
+Add the profile endpoint to view and edit a user profile
+To create a new template for the user profile in profile.html, run the following command:
+
+cat > ~/bookshelf/templates/profile.html <<EOF
+{# [START form] #}
+{% extends "base.html" %}
+
+{% block content %}
+
+<h3>Profile for {{session['user']['email']}}</h3>
+
+<form method="POST" enctype="multipart/form-data">
+
+    <div class="form-group">
+        <label for="preferredLanguage">Preferred Language</label>
+        <select id="preferredLanguage" name="preferredLanguage">
+            {% for l in languages %}
+            {% if l.language_code == profile['preferredLanguage'] %}
+            <option value="{{l.language_code}}" selected>{{l.display_name}}</option>
+            {% else %}
+            <option value="{{l.language_code}}">{{l.display_name}}</option>
+            {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+</form>
+
+{% endblock %}
+
+{# [END form] #}
+
+EOF
+Copied!
+This template creates a single form with a select control and a submit button. The select control is loaded with all of the languages passed in using the languages list variable. The value of each entry is the language_code, and the display_name is shown in the select control. The initially displayed language is the preferredLanguage specified in the profile.
+
+In a file editor, open the file ~/bookshelf/main.py.
+
+After the import for oauth, add the following lines:
+
+import translate
+import profiledb
+Copied!
+This imports the translate.py and profiledb.py files you just created.
+
+To add the /profile endpoint, add the following function after the /books/<book_id>/delete endpoint:
+
+
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    """
+    If GET, show the form to collect updated details for the user profile.
+    If POST, update the profile based on the specified form.
+    """
+    log_request(request)
+
+    # must be logged in
+    if "credentials" not in session:
+        session['login_return'] = url_for('.profile')
+        return redirect(url_for('.login'))
+
+    # read existing profile
+    email = session['user']['email']
+    profile = profiledb.read(email)
+
+    # Save details if form was posted
+    if request.method == 'POST':
+
+        # get book details from form
+        data = request.form.to_dict(flat=True)
+
+        # update profile
+        profiledb.update(data, email)
+        session['preferred_language'] = data['preferredLanguage']
+
+        # return to root
+        return redirect(url_for('.list'))
+
+    # render form to update book
+    return render_template('profile.html', action='Edit',
+        profile=profile, languages=translate.get_languages())
+Copied!
+The profile can only be accessed for logged-in users, so the user is redirected to login if not already logged in.
+
+The email of the logged-in user is taken from the user information in the session, and then the current profile is read.
+
+The profile is rendered by using the profile.html template.
+
+After you click the submit button, the profile is updated in the database, the preferred language for the user is stored in the session, and the browser is redirected to the root page.
+
+Save the file.
+
+Navigate to the profile when clicking on the user's email address
+In a file editor, open the file ~/bookshelf/templates/base.html.
+
+In this file, change the following line from:
+
+<div class="navbar-brand">{{session['user'].email}}</div>
+to:
+
+<div class="navbar-brand"><a href="/profile">{{session['user'].email}}</a></div>
+Copied!
+This changes the displayed email address to a clickable link that redirects to the /profile endpoint.
+
+Save the file.
+
+Translate the description on the view page
+In a file editor, open the file ~/bookshelf/templates/view.html.
+
+In this file, change the following line from:
+
+<p class="book-description">{{book.description}}</p>
+to:
+
+        {% if translation_language is not none %}
+        <p class="book-description"><strong>Description ({{description_language}}): </strong>{{book.description}}</p>
+        <p class="book-description"><strong>Translation ({{translation_language}}): </strong>{{translated_text}}</p>
+        {% else %}
+        <p class="book-description"><strong>Description: </strong>{{book.description}}</p>
+        {% endif %}
+Copied!
+If translation_language is not specified, the description is unchanged. However, if there is a translation language, then the language of the original description is displayed, and the next line shows the translated version with the text. The view endpoint must pass in this extra information.
+
+Save the file.
+
+In a file editor, open the file ~/bookshelf/main.py.
+
+After the log_request() function (which starts with def log_request():), add the following code:
+
+
+# build a mapping of language codes to display names
+
+display_languages = {}
+for l in translate.get_languages():
+    display_languages[l.language_code] = l.display_name
+Copied!
+The detect_language() function returns a detected language code, but no display name. This code creates a mapping from language code to display name. This will be used for displaying the detected language on the view template.
+
+Replace the entire view endpoint code with the following:
+
+@app.route('/books/<book_id>')
+def view(book_id):
+    """
+    View the details of a specified book.
+    """
+    log_request(request)
+
+    # retrieve a specific book
+    book = booksdb.read(book_id)
+    current_app.logger.info(f"book={book}")
+
+    # defaults if logged out
+    description_language = None
+    translation_language = None
+    translated_text = ''
+    if book['description'] and "credentials" in session:
+        preferred_language = session.get('preferred_language', 'en')
+
+        # translate description
+        translation = translate.translate_text(
+            text=book['description'],
+            target_language_code=preferred_language,
+        )
+        description_language = display_languages[translation.detected_language_code]
+        translation_language = display_languages[preferred_language]
+        translated_text = translation.translated_text
+
+    # render book details
+    return render_template('view.html', book=book,
+        translated_text=translated_text,
+        description_language=description_language,
+        translation_language=translation_language,
+    )
+Copied!
+The code now translates the book's description into the user's preferred language and passes the translation and languages to the template.
+
+Save the file.
+
+Task 8. Test the application
+To start the HTTP server, run the following command:
+
+cd ~/bookshelf; EXTERNAL_HOST_URL="https://8080-$WEB_HOST" ~/.local/bin/gunicorn -b :8080 main:app
+Copied!
+To open the application in the web browser, click Web Preview, and then select Preview on port 8080.
+
+Web Preview on port 8080
+
+A new tab is opened in the browser, and the application is running. You should see the Wizard of Oz book.
+
+Note: If asked to authorize Cloud Shell, click Authorize.
+If the user is not logged in, click Login, and then log the user in by providing consent.
+
+The email address should now be a link.
+
+Click the email address.
+
+The profile is displayed. The language select control should show English.
+
+Change the Preferred Language to Swahili, and then click Save.
+
+Click the Wonderful Wizard of Oz book.
+
+The view page now contains both the original English description and the Swahili translation.
+
+To verify the objective, click Check my progress.
+Test the application
+
+Congratulations!
+You successfully modified an application to use OAuth to log in users. You then added a user profile with a preferred language, and you used the Cloud Translation API to provide translations for book descriptions.
+
+Next Steps/Learn More
+Learn more about application development on Google Cloud.
+Explore the Google for Developers YouTube channel.
+End your lab
